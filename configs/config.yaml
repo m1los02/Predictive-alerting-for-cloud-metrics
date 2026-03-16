@@ -1,0 +1,44 @@
+paths:
+  raw_dir: data/raw/ServerMachineDataset
+  output_dir: checkpoints
+
+data:
+  # null = load every machine
+  # List specific names to run faster, e.g. ["machine-1-1", "machine-1-2"]
+  machines: null
+
+window:
+  W: 60    # look-back window length
+  H: 10    # predict incidents within next H steps
+  step: 1  # sliding stride
+
+features:
+  # Rolling-window sizes used for summary statistic extraction
+  sub_windows: [15, 30, 60]
+
+split:
+  val_frac: 0.15   
+  test_frac: 0.15
+  seed: 42
+
+models:
+
+  logistic_regression:
+    C: 0.1          
+
+  random_forest:
+    n_estimators: 300
+    max_depth: 15
+    min_samples_leaf: 5
+
+  xgboost:
+    n_optuna_trials: 50  
+
+  lstm:
+    hidden_dim: 128    
+    num_layers: 2
+    dropout: 0.3
+    batch_size: 256
+    epochs: 40
+    lr: 0.001
+    patience: 10    
