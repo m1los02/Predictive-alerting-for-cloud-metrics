@@ -7,6 +7,13 @@ from sklearn.metrics import average_precision_score
 from torch.utils.data import DataLoader, TensorDataset
 
 
+def _normalise_batched(X, mean_, std_, batch_size=50_000):
+        out = np.empty_like(X, dtype=np.float32)
+        for i in range(0, len(X), batch_size):
+            out[i : i + batch_size] = ((X[i : i + batch_size] - mean_) / std_)
+        return out
+
+
 class _AttentionPool(nn.Module):
     """
     Soft-attention pooling over the time dimension which learns a scalar importance score per timestep
@@ -115,8 +122,9 @@ def train_lstm(
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
     mean_, std_ = _normalise_params(X_train)
-    X_tr_n  = ((X_train - mean_) / std_).astype(np.float32)
-    X_val_n = ((X_val   - mean_) / std_).astype(np.float32)
+
+    X_tr_n  = _normalise_batched(X_train, mean_, std_)
+    X_val_n = _normalise_batched(X_val,   mean_, std_)
 
     train_loader = _to_loader(X_tr_n,  y_train, batch_size, shuffle=True)
     val_loader   = _to_loader(X_val_n, y_val,   batch_size, shuffle=False)
@@ -204,9 +212,9 @@ def predict_lstm(
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    X_n     = ((X - mean_) / std_).astype(np.float32)
-    loader  = _to_loader(X_n, np.zeros(len(X), dtype=np.float32), batch_size, shuffle=False)
-    model   = model.eval().to(device)
+    X_n = _normalise_batched(X, mean_, std_)
+    loader = _to_loader(X_n, np.zeros(len(X), dtype=np.float32), batch_size, shuffle=False)
+    model = model.eval().to(device)
     logits_all = []
     with torch.no_grad():
         for X_b, _ in loader:
